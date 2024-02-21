@@ -1,4 +1,4 @@
-# OpenTelemetry nginx module
+# OpenTelemetry nginx module 
 
 Adds OpenTelemetry distributed tracing support to nginx.
 
