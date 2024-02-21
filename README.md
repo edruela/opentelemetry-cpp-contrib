@@ -1,4 +1,4 @@
-# OpenTelemetry C++ Contrib
+# OpenTelemetry C++ Contrib 
 
 This repository contains set of components extending functionality of the
 OpenTelemetry SDK. Instrumentation libraries, exporters, and other components
