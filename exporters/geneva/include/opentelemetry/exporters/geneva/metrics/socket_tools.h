@@ -110,6 +110,14 @@ typedef u_short sa_family_t;
 #endif
 
 #include "opentelemetry/exporters/geneva/metrics/macros.h"
+#include "opentelemetry/version.h"
+
+// Wrap in detail namespace to avoid ODR violations with fluentd socket_tools.h
+OPENTELEMETRY_BEGIN_NAMESPACE
+namespace exporter {
+namespace geneva {
+namespace metrics {
+namespace detail {
 
 namespace net {
 
@@ -570,8 +578,14 @@ struct Socket {
     assert(m_sock != Invalid);
     if ((m_sock == Invalid) || (buffer == nullptr) || (size == 0))
       return 0;
+    int flags =
+#ifdef _WIN32
+        0;
+#else
+        MSG_NOSIGNAL;
+#endif
     return static_cast<int>(
-        ::send(m_sock, reinterpret_cast<char const *>(buffer), size, 0));
+        ::send(m_sock, reinterpret_cast<char const *>(buffer), size, flags));
   }
 
   int sendto(void const *buffer, size_t size, int flags, SocketAddr &destAddr) {
@@ -1123,6 +1137,12 @@ public:
 };
 
 } // namespace SocketTools
+
+} // namespace detail
+} // namespace metrics
+} // namespace geneva
+} // namespace exporter
+OPENTELEMETRY_END_NAMESPACE
 
 #ifdef _MSC_VER
 #pragma warning(pop)

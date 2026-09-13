@@ -1,11 +1,13 @@
 # Copyright The OpenTelemetry Authors
 # SPDX-License-Identifier: Apache-2.0
 
-cmake_minimum_required(VERSION 3.12)
+cmake_minimum_required(VERSION 3.16)
 
 set(this_target opentelemetry_log4cxx_appender)
 
 project(${this_target})
+
+include(FetchContent)
 
 find_package(opentelemetry-cpp QUIET)
 
@@ -84,6 +86,16 @@ if(OPENTELEMETRY_INSTALL)
 endif() # OPENTELEMETRY_INSTALL
 
 if(BUILD_TESTING)
+  FetchContent_Declare(
+    googletest
+    GIT_REPOSITORY https://github.com/google/googletest.git
+    GIT_TAG 15460959cbbfa20e66ef0b5ab497367e47fc0a04 # v1.12.0
+  )
+
+  FetchContent_MakeAvailable(googletest)
+
+  enable_testing()
+
   set(testname appender_test)
 
   include(GoogleTest)
@@ -97,9 +109,9 @@ if(BUILD_TESTING)
   )
 
   target_link_libraries(${testname} PRIVATE
-    gmock
-    gtest
-    gtest_main
+    GTest::gmock
+    GTest::gtest
+    GTest::gtest_main
     log4cxx
     opentelemetry-cpp::ostream_log_record_exporter
     ${this_target}

@@ -33,14 +33,14 @@ boost::log::core::get()->add_sink(sink);
 
 This will create a backend with the following assumptions about the attributes it collects, more precisely:
 
-| Keyword      | Type                        |
-|--------------|-----------------------------|
-| Severity     | int                         |
-| TimeStamp    | boost::posix_time::ptime    |
-| ThreadID     | boost::log::aux::thread::id |
-| FileName     | std::string                 |
-| FunctionName | std::string                 |
-| LineNumber   | int                         |
+| Keyword      | Type                                |
+|--------------|-------------------------------------|
+| Severity     | boost::log::trivial::severity_level |
+| TimeStamp    | boost::posix_time::ptime            |
+| ThreadID     | boost::log::aux::thread::id         |
+| FileName     | std::string                         |
+| FunctionName | std::string                         |
+| LineNumber   | int                                 |
 
 If, however, one or more of these attributes have a different name or type, it is possible to communicate this to the backend via the `ValueMappers` struct. It contains a function for each attribute described above, with their signatures as follows:
 
@@ -65,7 +65,7 @@ enum class CustomSeverity
 
 opentelemetry::instrumentation::boost_log::ValueMappers mappers;
 mappers.ToSeverity = [](const boost::log::record_view &record) {
-  if (const auto &result = boost::log::extract<CustomSeverity>(record["LogLevel"]))
+  if (const auto &result = boost::log::extract<CustomSeverity>(record["Severity"]))
   {
     switch (result.get())
     {
@@ -84,7 +84,7 @@ mappers.ToSeverity = [](const boost::log::record_view &record) {
       case CustomSeverity::kViolet:
         [[fallthrough]];
       default: 
-        return Severity::kInvalid;
+        return opentelemetry::logs::Severity::kInvalid;
     }
   }
 

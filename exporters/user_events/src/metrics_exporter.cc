@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 #include "opentelemetry/exporters/user_events/metrics/exporter.h"
+#include "opentelemetry/proto/collector/metrics/v1/metrics_service.pb.h"
 
 #include "tracepoint/tracepoint.h"
 
@@ -65,7 +66,7 @@ sdk_common::ExportResult Exporter::Export(
     return sdk_common::ExportResult::kSuccess;
   }
 
-  proto::collector::metrics::ExportMetricsServiceRequest request;
+  proto::collector::metrics::v1::ExportMetricsServiceRequest request;
   otlp_exporter::OtlpMetricUtils::PopulateRequest(data, &request);
 
   int size = (int)request.ByteSizeLong();

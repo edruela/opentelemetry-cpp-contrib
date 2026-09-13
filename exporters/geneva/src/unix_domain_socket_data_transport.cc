@@ -12,19 +12,19 @@ namespace metrics {
 UnixDomainSocketDataTransport::UnixDomainSocketDataTransport(
     const std::string &connection_string) 
 {      
-  addr_.reset(new SocketTools::SocketAddr(connection_string.c_str(), true));
+  addr_.reset(new detail::SocketTools::SocketAddr(connection_string.c_str(), true));
 }
 
 bool UnixDomainSocketDataTransport::Connect() noexcept {
   if (!connected_) {
-    socket_ = SocketTools::Socket(socketparams_);
+    socket_ = detail::SocketTools::Socket(socketparams_);
     connected_ = socket_.connect(*addr_);
     if (!connected_) {
+      socket_.close();
       LOG_ERROR("Geneva Exporter: UDS::Connect failed");
-      return false;
     }
   }
-  return true;
+  return connected_;
 }
 
 bool UnixDomainSocketDataTransport::Send(MetricsEventType event_type,
@@ -42,26 +42,26 @@ bool UnixDomainSocketDataTransport::Send(MetricsEventType event_type,
           "Geneva Exporter: UDS::Send Socket reconnect failed. Send failed");
     }
   }
-  if (error_code != 0) {
+  if (!connected_ || error_code != 0 ) {
     LOG_ERROR("Geneva Exporter: UDS::Send failed - not connected");
     connected_ = false;
+    return false;
   }
 
   // try to write
   size_t sent_size = socket_.writeall(data, length);
-  if (length == sent_size) {
-    // Disconnect();
-    return true;
-  } else {
+  if (length != sent_size) {
+    Disconnect();
     LOG_ERROR("Geneva Exporter: UDS::Send failed");
+    return false;
   }
-  return false;
+  return true;
 }
 
 bool UnixDomainSocketDataTransport::Disconnect() noexcept {
   if (connected_) {
     connected_ = false;
-    if (socket_.invalid()) {
+    if (!socket_.invalid()) {
       socket_.close();
       return true;
     }

@@ -1,14 +1,16 @@
 # Copyright The OpenTelemetry Authors
 # SPDX-License-Identifier: Apache-2.0
 
-cmake_minimum_required(VERSION 3.12)
+cmake_minimum_required(VERSION 3.16)
 
 set(this_target opentelemetry_glog_sink)
 
 project(${this_target})
 
+include(FetchContent)
+
 find_package(opentelemetry-cpp REQUIRED)
-find_package(glog REQUIRED)
+find_package(glog 0.7.0 REQUIRED)
 
 add_library(${this_target} src/sink.cc)
 
@@ -69,6 +71,18 @@ if(OPENTELEMETRY_INSTALL)
 endif() # OPENTELEMETRY_INSTALL
 
 if(BUILD_TESTING)
+  include(FetchContent)
+
+  FetchContent_Declare(
+    googletest
+    GIT_REPOSITORY https://github.com/google/googletest.git
+    GIT_TAG 15460959cbbfa20e66ef0b5ab497367e47fc0a04 # v1.12.0
+  )
+
+  FetchContent_MakeAvailable(googletest)
+
+  enable_testing()
+
   set(testname sink_test)
 
   include(GoogleTest)
@@ -81,8 +95,8 @@ if(BUILD_TESTING)
   )
 
   target_link_libraries(${testname} PRIVATE
-    gmock
-    gtest
+    GTest::gmock
+    GTest::gtest
     glog::glog
     opentelemetry-cpp::ostream_log_record_exporter
     ${this_target}

@@ -12,11 +12,11 @@
 # License for the specific language governing permissions and limitations under
 # the License.
 
-cmake_minimum_required(VERSION 3.12)
+cmake_minimum_required(VERSION 3.16)
 
 project(
   opentelemetry-cpp-contrib
-  VERSION "1.11.0" # opentelemetry-cpp-contrib 1.11.0
+  VERSION "1.19.0" # opentelemetry-cpp-contrib 1.19.0
   HOMEPAGE_URL "https://github.com/open-telemetry/opentelemetry-cpp-contrib"
   LANGUAGES CXX)
 

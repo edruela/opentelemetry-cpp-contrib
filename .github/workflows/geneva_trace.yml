@@ -4,26 +4,33 @@
 name: Geneva Trace Nuget Generation
 
 on:
+  workflow_dispatch:
   push:
-    branches: "*"
+    branches:
+      - '*'
     paths:
-      - "exporters/geneva-trace/**"
-      - ".github/workflows/geneva_trace.yml"
+      - 'exporters/geneva-trace/**'
+      - '.github/workflows/geneva_trace.yml'
   pull_request:
-    branches: [main]
+    branches:
+      - 'main'
     paths:
-      - "exporters/geneva-trace/**"
-      - ".github/workflows/geneva_trace.yml"
+      - 'exporters/geneva-trace/**'
+      - '.github/workflows/geneva_trace.yml'
+
+permissions:
+  contents: read
   
 jobs:
   geneva-trace-nuget-generation:
     name: Geneva Trace
-    runs-on: windows-latest
+    runs-on: windows-2025
     steps:
     - name: github config
       run: git config --system core.longpaths true
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       with:
+        persist-credentials: false
         submodules: 'recursive'
     - name: NuGet package generation
       env: 

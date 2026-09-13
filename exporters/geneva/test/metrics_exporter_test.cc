@@ -6,11 +6,11 @@
 
 #include "opentelemetry/exporters/geneva/metrics/exporter.h"
 
+#include <gtest/gtest.h>
 #include "common/generate_metrics.h"
 #include "common/socket_server.h"
 #include "decoder/ifx_metrics_bin.h"
 #include "decoder/kaitai/kaitaistream.h"
-#include <gtest/gtest.h>
 
 #if defined(_WIN32)
 
@@ -23,208 +23,267 @@ using namespace kaitai;
 using namespace opentelemetry::sdk::metrics;
 using namespace opentelemetry::exporter::geneva::metrics;
 
-std::string kUnixDomainPathUDS = "/tmp/ifx_unix_socket";
+std::string kUnixDomainPathUDS            = "/tmp/ifx_unix_socket";
 std::string kUnixDomainPathAbstractSocket = "@/tmp/ifx_unix_socket";
 
 const std::string kNamespaceName = "test_ns";
-const std::string kAccountName = "test_account";
+const std::string kAccountName   = "test_account";
 
 const std::string kCustomNamespaceName = "custom_ns";
-const std::string kCustomAccountName = "custom_account";
-
+const std::string kCustomAccountName   = "custom_account";
 
 // "busy sleep" while suggesting that other threads run
 // for a small amount of time
-template <typename timeunit> void yield_for(timeunit duration) {
+template <typename timeunit>
+void yield_for(timeunit duration)
+{
   auto start = std::chrono::high_resolution_clock::now();
-  auto end = start + duration;
-  do {
+  auto end   = start + duration;
+  do
+  {
     std::this_thread::yield();
   } while (std::chrono::high_resolution_clock::now() < end);
 }
 
-struct TestServer {
+struct TestServer
+{
   SocketServer &server;
   std::atomic<uint32_t> count{0};
-  size_t count_counter_double = 0;
-  size_t count_counter_long = 0;
-  size_t count_up_down_counter_long = 0;
+  size_t count_counter_double         = 0;
+  size_t count_counter_long           = 0;
+  size_t count_up_down_counter_long   = 0;
   size_t count_up_down_counter_double = 0;
-  size_t count_histogram_long = 0;
-  size_t count_custom_histogram_long = 0;
+  size_t count_histogram_long         = 0;
+  size_t count_custom_histogram_long  = 0;
 
-  TestServer(SocketServer &server) : server(server) {
+  TestServer(SocketServer &server) : server(server)
+  {
     server.onRequest = [&](SocketServer::Connection &conn) {
-      try {
+      try
+      {
         std::stringstream ss{conn.request_buffer};
         kaitai::kstream ks(&ss);
-        try {
+        try
+        {
           ifx_metrics_bin_t event_bin = ifx_metrics_bin_t(&ks);
 
-          if (event_bin.event_id() == kCounterDoubleEventId) {
+          if (event_bin.event_id() == kCounterDoubleEventId)
+          {
             EXPECT_EQ(event_bin.event_id(), kCounterDoubleEventId);
             auto event_body = event_bin.body();
-            if (static_cast<ifx_metrics_bin_t::single_double_value_t *>(
-                    event_body->value_section())
-                    ->value() == kCounterDoubleValue1) {
-              EXPECT_EQ(event_body->num_dimensions(),
-                        kCounterDoubleCountDimensions);
+            if (static_cast<ifx_metrics_bin_t::single_double_value_t *>(event_body->value_section())
+                    ->value() == kCounterDoubleValue1)
+            {
+              EXPECT_EQ(event_body->num_dimensions(), kCounterDoubleCountDimensions + 2);
+              EXPECT_EQ(event_body->dimensions_names()->at(0)->value(), 
+                        kPrepopulatedDimensionKey1);
               EXPECT_EQ(event_body->dimensions_values()->at(0)->value(),
-                        kCounterDoubleAttributeValue1);
-              EXPECT_EQ(event_body->dimensions_names()->at(0)->value(),
-                        kCounterDoubleAttributeKey1);
-              EXPECT_EQ(event_body->metric_name()->value(),
-                        kCounterDoubleInstrumentName);
-              count_counter_double++;
-            }
-            if (static_cast<ifx_metrics_bin_t::single_double_value_t *>(
-                    event_body->value_section())
-                    ->value() == kCounterDoubleValue2) {
-              EXPECT_EQ(event_body->num_dimensions(),
-                        kCounterDoubleCountDimensions + 1);
-              EXPECT_EQ(event_body->dimensions_values()->at(0)->value(),
-                        kCounterDoubleAttributeValue2);
-              EXPECT_EQ(event_body->dimensions_names()->at(0)->value(),
-                        kCounterDoubleAttributeKey2);
+                        kPrepopulatedDimensionValue1);
+              EXPECT_EQ(event_body->dimensions_names()->at(1)->value(), 
+                        kPrepopulatedDimensionKey2);
               EXPECT_EQ(event_body->dimensions_values()->at(1)->value(),
-                        kCounterDoubleAttributeValue3);
-              EXPECT_EQ(event_body->dimensions_names()->at(1)->value(),
-                        kCounterDoubleAttributeKey3);
-              EXPECT_EQ(event_body->metric_name()->value(),
-                        kCounterDoubleInstrumentName);
+                        kPrepopulatedDimensionValue2);
+              EXPECT_EQ(event_body->dimensions_values()->at(2)->value(),
+                        kCounterDoubleAttributeValue1);
+              EXPECT_EQ(event_body->dimensions_names()->at(2)->value(),
+                        kCounterDoubleAttributeKey1);
+              EXPECT_EQ(event_body->metric_name()->value(), kCounterDoubleInstrumentName);
               count_counter_double++;
             }
-            if (static_cast<ifx_metrics_bin_t::single_double_value_t *>(
-                    event_body->value_section())
-                    ->value() == kUpDownCounterLongValue) {
-              EXPECT_EQ(event_body->num_dimensions(),
-                        kUpDownCounterLongCountDimensions);
+            if (static_cast<ifx_metrics_bin_t::single_double_value_t *>(event_body->value_section())
+                    ->value() == kCounterDoubleValue2)
+            {
+              EXPECT_EQ(event_body->num_dimensions(), kCounterDoubleCountDimensions + 3);
+              EXPECT_EQ(event_body->dimensions_names()->at(0)->value(), 
+                        kPrepopulatedDimensionKey1);
               EXPECT_EQ(event_body->dimensions_values()->at(0)->value(),
+                        kPrepopulatedDimensionValue1);
+              EXPECT_EQ(event_body->dimensions_names()->at(1)->value(), 
+                        kPrepopulatedDimensionKey2);
+              EXPECT_EQ(event_body->dimensions_values()->at(1)->value(),
+                        kPrepopulatedDimensionValue2);
+              EXPECT_EQ(event_body->dimensions_values()->at(2)->value(),
+                        kCounterDoubleAttributeValue2);
+              EXPECT_EQ(event_body->dimensions_names()->at(2)->value(),
+                        kCounterDoubleAttributeKey2);
+              EXPECT_EQ(event_body->dimensions_values()->at(3)->value(),
+                        kCounterDoubleAttributeValue3);
+              EXPECT_EQ(event_body->dimensions_names()->at(3)->value(),
+                        kCounterDoubleAttributeKey3);
+              EXPECT_EQ(event_body->metric_name()->value(), kCounterDoubleInstrumentName);
+              count_counter_double++;
+            }
+            if (static_cast<ifx_metrics_bin_t::single_double_value_t *>(event_body->value_section())
+                    ->value() == kUpDownCounterLongValue)
+            {
+              EXPECT_EQ(event_body->num_dimensions(), kUpDownCounterLongCountDimensions + 2);
+              EXPECT_EQ(event_body->dimensions_names()->at(0)->value(), 
+                        kPrepopulatedDimensionKey1);
+              EXPECT_EQ(event_body->dimensions_values()->at(0)->value(),
+                        kPrepopulatedDimensionValue1);
+              EXPECT_EQ(event_body->dimensions_names()->at(1)->value(), 
+                        kPrepopulatedDimensionKey2);
+              EXPECT_EQ(event_body->dimensions_values()->at(1)->value(),
+                        kPrepopulatedDimensionValue2);
+              EXPECT_EQ(event_body->dimensions_values()->at(2)->value(),
                         kUpDownCounterLongAttributeValue1);
-              EXPECT_EQ(event_body->dimensions_names()->at(0)->value(),
+              EXPECT_EQ(event_body->dimensions_names()->at(2)->value(),
                         kUpDownCounterLongAttributeKey1);
               count_up_down_counter_long++;
             }
-            if (static_cast<ifx_metrics_bin_t::single_double_value_t *>(
-                    event_body->value_section())
-                    ->value() == kUpDownCounterDoubleValue) {
-              EXPECT_EQ(event_body->num_dimensions(),
-                        kUpDownCounterDoubleCountDimensions);
+            if (static_cast<ifx_metrics_bin_t::single_double_value_t *>(event_body->value_section())
+                    ->value() == kUpDownCounterDoubleValue)
+            {
+              EXPECT_EQ(event_body->num_dimensions(), kUpDownCounterDoubleCountDimensions + 2);
+              EXPECT_EQ(event_body->dimensions_names()->at(0)->value(), 
+                        kPrepopulatedDimensionKey1);
               EXPECT_EQ(event_body->dimensions_values()->at(0)->value(),
+                        kPrepopulatedDimensionValue1);
+              EXPECT_EQ(event_body->dimensions_names()->at(1)->value(), 
+                        kPrepopulatedDimensionKey2);
+              EXPECT_EQ(event_body->dimensions_values()->at(1)->value(),
+                        kPrepopulatedDimensionValue2);
+              EXPECT_EQ(event_body->dimensions_values()->at(2)->value(),
                         kUpDownCounterDoubleAttributeValue1);
-              EXPECT_EQ(event_body->dimensions_names()->at(0)->value(),
+              EXPECT_EQ(event_body->dimensions_names()->at(2)->value(),
                         kUpDownCounterDoubleAttributeKey1);
               count_up_down_counter_double++;
             }
             EXPECT_EQ(event_body->metric_account()->value(), kAccountName);
             EXPECT_EQ(event_body->metric_namespace()->value(), kNamespaceName);
-          } else if (event_bin.event_id() == kCounterLongEventId) {
+          }
+          else if (event_bin.event_id() == kCounterLongEventId)
+          {
             EXPECT_EQ(event_bin.event_id(), kCounterLongEventId);
             auto event_body = event_bin.body();
-            if (static_cast<ifx_metrics_bin_t::single_uint64_value_t *>(
-                  event_body->value_section())->value() == kCounterLongValue) {
+            if (static_cast<ifx_metrics_bin_t::single_uint64_value_t *>(event_body->value_section())
+                    ->value() == kCounterLongValue)
+            {
               EXPECT_EQ(static_cast<ifx_metrics_bin_t::single_uint64_value_t *>(
-                          event_body->value_section())
-                          ->value(),
-                      kCounterLongValue);
-              EXPECT_EQ(event_body->num_dimensions(),
-                      kCounterLongCountDimensions);
+                            event_body->value_section())
+                            ->value(),
+                        kCounterLongValue);
+              EXPECT_EQ(event_body->dimensions_names()->at(0)->value(), 
+                        kPrepopulatedDimensionKey1);
               EXPECT_EQ(event_body->dimensions_values()->at(0)->value(),
-                      kCounterLongAttributeValue1);
-              EXPECT_EQ(event_body->dimensions_names()->at(0)->value(),
-                      kCounterLongAttributeKey1);
+                        kPrepopulatedDimensionValue1);
+              EXPECT_EQ(event_body->dimensions_names()->at(1)->value(), 
+                        kPrepopulatedDimensionKey2);
+              EXPECT_EQ(event_body->dimensions_values()->at(1)->value(),
+                        kPrepopulatedDimensionValue2);
+              EXPECT_EQ(event_body->num_dimensions(), kCounterLongCountDimensions + 2);
+              EXPECT_EQ(event_body->dimensions_values()->at(2)->value(),
+                        kCounterLongAttributeValue1);
+              EXPECT_EQ(event_body->dimensions_names()->at(2)->value(), kCounterLongAttributeKey1);
               count_counter_long++;
               EXPECT_EQ(event_body->metric_account()->value(), kAccountName);
               EXPECT_EQ(event_body->metric_namespace()->value(), kNamespaceName);
-            } else if (static_cast<ifx_metrics_bin_t::single_uint64_value_t *>(
-                event_body->value_section())->value() == kCounterCustomLongValue) {
+            }
+            else if (static_cast<ifx_metrics_bin_t::single_uint64_value_t *>(
+                         event_body->value_section())
+                         ->value() == kCounterCustomLongValue)
+            {
               EXPECT_EQ(static_cast<ifx_metrics_bin_t::single_uint64_value_t *>(
-                          event_body->value_section())
-                          ->value(),
-                      kCounterCustomLongValue);
-              EXPECT_EQ(event_body->num_dimensions(),
-                      kCounterLongCountDimensions);
+                            event_body->value_section())
+                            ->value(),
+                        kCounterCustomLongValue);
+              EXPECT_EQ(event_body->num_dimensions(), kCounterLongCountDimensions + 2);
+              EXPECT_EQ(event_body->dimensions_names()->at(0)->value(), 
+                        kPrepopulatedDimensionKey1);
               EXPECT_EQ(event_body->dimensions_values()->at(0)->value(),
-                      kCounterLongAttributeValue1);
-              EXPECT_EQ(event_body->dimensions_names()->at(0)->value(),
-                      kCounterLongAttributeKey1);
+                        kPrepopulatedDimensionValue1);
+              EXPECT_EQ(event_body->dimensions_names()->at(1)->value(), 
+                        kPrepopulatedDimensionKey2);
+              EXPECT_EQ(event_body->dimensions_values()->at(1)->value(),
+                        kPrepopulatedDimensionValue2);
+              EXPECT_EQ(event_body->dimensions_values()->at(2)->value(),
+                        kCounterLongAttributeValue1);
+              EXPECT_EQ(event_body->dimensions_names()->at(2)->value(), kCounterLongAttributeKey1);
               count_counter_long++;
               EXPECT_EQ(event_body->metric_account()->value(), kCustomAccountName);
               EXPECT_EQ(event_body->metric_namespace()->value(), kCustomNamespaceName);
             }
-          }  
-           else if (event_bin.event_id() == kHistogramLongEventId) {
+          }
+          else if (event_bin.event_id() == kHistogramLongEventId)
+          {
             EXPECT_EQ(event_bin.event_id(), kHistogramLongEventId);
             auto event_body = event_bin.body();
-            EXPECT_EQ(event_body->num_dimensions(),
-                      kCounterLongCountDimensions);
-            EXPECT_EQ(event_body->dimensions_values()->at(0)->value(),
+            EXPECT_EQ(event_body->num_dimensions(), kCounterLongCountDimensions + 2);
+              EXPECT_EQ(event_body->dimensions_names()->at(0)->value(), 
+                        kPrepopulatedDimensionKey1);
+              EXPECT_EQ(event_body->dimensions_values()->at(0)->value(),
+                        kPrepopulatedDimensionValue1);
+              EXPECT_EQ(event_body->dimensions_names()->at(1)->value(), 
+                        kPrepopulatedDimensionKey2);
+              EXPECT_EQ(event_body->dimensions_values()->at(1)->value(),
+                        kPrepopulatedDimensionValue2);
+            EXPECT_EQ(event_body->dimensions_values()->at(2)->value(),
                       kHistogramLongAttributeValue1);
-            EXPECT_EQ(event_body->dimensions_names()->at(0)->value(),
-                      kHistogramLongAttributeKey1);
+            EXPECT_EQ(event_body->dimensions_names()->at(2)->value(), kHistogramLongAttributeKey1);
             if (static_cast<ifx_metrics_bin_t::ext_aggregated_uint64_value_t *>(
                     event_body->value_section())
-                    ->sum() == kHistogramLongSum) {
+                    ->sum() == kHistogramLongSum)
+            {
               EXPECT_EQ(event_body->metric_account()->value(), kAccountName);
               EXPECT_EQ(event_body->metric_namespace()->value(), kNamespaceName);
               count_histogram_long++;
-            } else if (static_cast<ifx_metrics_bin_t::ext_aggregated_uint64_value_t *>(
-                    event_body->value_section())
-                    ->sum() == kHistogramCustomLongSum) {
+            }
+            else if (static_cast<ifx_metrics_bin_t::ext_aggregated_uint64_value_t *>(
+                         event_body->value_section())
+                         ->sum() == kHistogramCustomLongSum)
+            {
               EXPECT_EQ(event_body->metric_account()->value(), kCustomAccountName);
               EXPECT_EQ(event_body->metric_namespace()->value(), kCustomNamespaceName);
               count_custom_histogram_long++;
             }
-            EXPECT_EQ(
-                static_cast<ifx_metrics_bin_t::ext_aggregated_uint64_value_t *>(
-                    event_body->value_section())
-                    ->min(),
-                kHistogramLongMin);
-            EXPECT_EQ(
-                static_cast<ifx_metrics_bin_t::ext_aggregated_uint64_value_t *>(
-                    event_body->value_section())
-                    ->max(),
-                kHistogramLongMax);
-            EXPECT_EQ(
-                static_cast<ifx_metrics_bin_t::histogram_value_count_pairs_t *>(
-                    event_body->histogram()->body())
-                    ->distribution_size(),
-                kHistogramLongNonEmptyBucketSize);
+            EXPECT_EQ(static_cast<ifx_metrics_bin_t::ext_aggregated_uint64_value_t *>(
+                          event_body->value_section())
+                          ->min(),
+                      kHistogramLongMin);
+            EXPECT_EQ(static_cast<ifx_metrics_bin_t::ext_aggregated_uint64_value_t *>(
+                          event_body->value_section())
+                          ->max(),
+                      kHistogramLongMax);
+            EXPECT_EQ(static_cast<ifx_metrics_bin_t::histogram_value_count_pairs_t *>(
+                          event_body->histogram()->body())
+                          ->distribution_size(),
+                      kHistogramLongNonEmptyBucketSize);
 
-            size_t index_all_buckets = 0;
+            size_t index_all_buckets      = 0;
             size_t index_nonempty_buckets = 0;
-            for (auto value : kHistogramLongBoundaries) {
-              if (kHistogramLongCounts[index_all_buckets] > 0) {
-                EXPECT_EQ(
-                    static_cast<ifx_metrics_bin_t::pair_value_count_t *>(
-                        static_cast<
-                            ifx_metrics_bin_t::histogram_value_count_pairs_t *>(
-                            event_body->histogram()->body())
-                            ->columns()
-                            ->at(index_nonempty_buckets))
-                        ->count(),
-                    kHistogramLongCounts[index_all_buckets]);
-                EXPECT_EQ(
-                    static_cast<ifx_metrics_bin_t::pair_value_count_t *>(
-                        static_cast<
-                            ifx_metrics_bin_t::histogram_value_count_pairs_t *>(
-                            event_body->histogram()->body())
-                            ->columns()
-                            ->at(index_nonempty_buckets))
-                        ->value(),
-                    value);
+            for (auto value : kHistogramLongBoundaries)
+            {
+              if (kHistogramLongCounts[index_all_buckets] > 0)
+              {
+                EXPECT_EQ(static_cast<ifx_metrics_bin_t::pair_value_count_t *>(
+                              static_cast<ifx_metrics_bin_t::histogram_value_count_pairs_t *>(
+                                  event_body->histogram()->body())
+                                  ->columns()
+                                  ->at(index_nonempty_buckets))
+                              ->count(),
+                          kHistogramLongCounts[index_all_buckets]);
+                EXPECT_EQ(static_cast<ifx_metrics_bin_t::pair_value_count_t *>(
+                              static_cast<ifx_metrics_bin_t::histogram_value_count_pairs_t *>(
+                                  event_body->histogram()->body())
+                                  ->columns()
+                                  ->at(index_nonempty_buckets))
+                              ->value(),
+                          value);
                 index_nonempty_buckets++;
               }
               index_all_buckets++;
             }
           }
-
-        } catch (...) {
+        }
+        catch (...)
+        {
           EXPECT_NE("READ FAILED", "READ FAILED");
         }
         conn.state.insert(SocketServer::Connection::Responding);
         conn.request_buffer.clear();
-      } catch (std::exception &) {
+      }
+      catch (std::exception &)
+      {
         conn.state.insert(SocketServer::Connection::Receiving);
         // skip invalid payload
       }
@@ -235,25 +294,28 @@ struct TestServer {
 
   void Stop() { server.Stop(); }
 
-  void WaitForEvents(uint32_t expectedCount, uint32_t timeout) {
-    if (count.load() != expectedCount) {
+  void WaitForEvents(uint32_t expectedCount, uint32_t timeout)
+  {
+    if (count.load() != expectedCount)
+    {
       yield_for(std::chrono::milliseconds(timeout));
     }
     EXPECT_EQ(count.load(), expectedCount);
   }
 };
 
-class GenericMetricsExporterTextFixture: public ::testing::TestWithParam<std::string>
+class GenericMetricsExporterTextFixture : public ::testing::TestWithParam<std::string>
 {};
 
-TEST_P(GenericMetricsExporterTextFixture, BasicTests) {
+TEST_P(GenericMetricsExporterTextFixture, BasicTests)
+{
 
   std::string kUnixDomainPath = GetParam();
-  bool isRunning = true;
+  bool isRunning              = true;
 
   // Start test server
-  SocketAddr destination(kUnixDomainPath.data(), true);
-  SocketParams params{AF_UNIX, SOCK_STREAM, 0};
+  opentelemetry::v1::exporter::geneva::metrics::detail::SocketTools::SocketAddr destination(kUnixDomainPath.data(), true);
+  opentelemetry::v1::exporter::geneva::metrics::detail::SocketTools::SocketParams params{AF_UNIX, SOCK_STREAM, 0};
   SocketServer socketServer(destination, params);
   TestServer testServer(socketServer);
   testServer.Start();
@@ -261,12 +323,12 @@ TEST_P(GenericMetricsExporterTextFixture, BasicTests) {
 
   // conn_string:
   // `Endpoint=unix:{udsPath};Account={MetricAccount};Namespace={MetricNamespace}`
-  std::string conn_string = "Endpoint=unix://" + kUnixDomainPath +
-                            ";Account=" + kAccountName +
+  std::string conn_string = "Endpoint=unix://" + kUnixDomainPath + ";Account=" + kAccountName +
                             ";Namespace=" + kNamespaceName;
-  ExporterOptions options{conn_string};
+  ExporterOptions options{
+      conn_string,
+      {{kPrepopulatedDimensionKey1, kPrepopulatedDimensionValue1}, {kPrepopulatedDimensionKey2, kPrepopulatedDimensionValue2}}};
   opentelemetry::exporter::geneva::metrics::Exporter exporter(options);
-
 
   // export sum aggregation - double
   auto metric_data = GenerateSumDataDoubleMetrics();
@@ -313,7 +375,173 @@ TEST_P(GenericMetricsExporterTextFixture, BasicTests) {
   testServer.Stop();
 }
 
-INSTANTIATE_TEST_SUITE_P(GenericMetricsExporterText, GenericMetricsExporterTextFixture,
-    ::testing::Values(kUnixDomainPathUDS, kUnixDomainPathAbstractSocket));
+INSTANTIATE_TEST_SUITE_P(GenericMetricsExporterText,
+                         GenericMetricsExporterTextFixture,
+                         ::testing::Values(kUnixDomainPathUDS, kUnixDomainPathAbstractSocket));
+
+// Test for GetAggregationTemporality method
+TEST(GenevaExporterTest, GetAggregationTemporalityTest) {
+  ExporterOptions options{"Endpoint=unix:///tmp/test;Account=test;Namespace=test"};
+  Exporter exporter(options);
+  
+  // Test that kUpDownCounter returns kCumulative
+  EXPECT_EQ(exporter.GetAggregationTemporality(InstrumentType::kUpDownCounter), 
+            AggregationTemporality::kCumulative);
+            
+  // Test that kObservableUpDownCounter returns kCumulative
+  EXPECT_EQ(exporter.GetAggregationTemporality(InstrumentType::kObservableUpDownCounter), 
+            AggregationTemporality::kCumulative);
+            
+  // Test that other instrument types return kDelta
+  EXPECT_EQ(exporter.GetAggregationTemporality(InstrumentType::kCounter), 
+            AggregationTemporality::kDelta);
+  EXPECT_EQ(exporter.GetAggregationTemporality(InstrumentType::kHistogram), 
+            AggregationTemporality::kDelta);
+}
+
+// Builds a ResourceMetrics carrying a single Sum (long) point whose attributes
+// are supplied by the caller. Used by the buffer-overflow regression tests.
+static inline opentelemetry::sdk::metrics::ResourceMetrics
+MakeSumLongMetricsWithAttributes(
+    const opentelemetry::sdk::metrics::PointAttributes &attributes) {
+  opentelemetry::sdk::metrics::SumPointData sum_point_data{};
+  sum_point_data.value_ = static_cast<int64_t>(42);
+  sum_point_data.is_monotonic_ = true;
+
+  static opentelemetry::sdk::resource::Resource resource =
+      opentelemetry::sdk::resource::Resource::Create(
+          opentelemetry::sdk::resource::ResourceAttributes{});
+  static auto scope =
+      opentelemetry::sdk::instrumentationscope::InstrumentationScope::Create(
+          "overflow_test_lib", "1.0.0");
+
+  opentelemetry::sdk::metrics::MetricData metric_data{
+      opentelemetry::sdk::metrics::InstrumentDescriptor{
+          "overflow_metric", "desc", "unit",
+          opentelemetry::sdk::metrics::InstrumentType::kCounter,
+          opentelemetry::sdk::metrics::InstrumentValueType::kLong},
+      opentelemetry::sdk::metrics::AggregationTemporality::kDelta,
+      opentelemetry::common::SystemTimestamp{std::chrono::system_clock::now()},
+      opentelemetry::common::SystemTimestamp{std::chrono::system_clock::now()},
+      std::vector<opentelemetry::sdk::metrics::PointDataAttributes>{
+          {attributes, sum_point_data}}};
+
+  opentelemetry::sdk::metrics::ResourceMetrics data;
+  data.resource_ = &resource;
+  data.scope_metric_data_ =
+      std::vector<opentelemetry::sdk::metrics::ScopeMetrics>{
+          {scope.get(),
+           std::vector<opentelemetry::sdk::metrics::MetricData>{metric_data}}};
+  return data;
+}
+
+// Regression test: attribute values whose total serialized size exceeds
+// kBufferSize (65360) must NOT overflow buffer_. Before the fix this PoC
+// (90 x 1024-byte values ~= 92 KB) triggered an AddressSanitizer
+// global-buffer-overflow inside SerializeString. The fix drops the oversized
+// metric instead of overflowing; Export must still complete cleanly.
+TEST(GenevaExporterTest, OversizedAttributesDoNotOverflowBuffer) {
+  ExporterOptions options{
+      "Endpoint=unix:///tmp/geneva_overflow_test;Account=test;Namespace=test"};
+  Exporter exporter(options);
+
+  PointAttributes attributes;
+  for (int i = 0; i < 90; i++) {
+    attributes.emplace("attr_" + std::to_string(i),
+                       std::string(kMaxDimensionValueSize, 'A'));
+  }
+
+  // Must not overflow buffer_ (validated under ASan/UBSan) and must return
+  // success rather than crashing.
+  EXPECT_EQ(exporter.Export(MakeSumLongMetricsWithAttributes(attributes)),
+            opentelemetry::sdk::common::ExportResult::kSuccess);
+}
+
+// Regression test: a single attribute value larger than kMaxDimensionValueSize
+// (but small enough that the metric still fits) is clamped, not rejected, and
+// serialization stays within bounds.
+TEST(GenevaExporterTest, SingleOversizedValueIsClampedNotOverflowed) {
+  ExporterOptions options{
+      "Endpoint=unix:///tmp/geneva_clamp_test;Account=test;Namespace=test"};
+  Exporter exporter(options);
+
+  PointAttributes attributes;
+  attributes.emplace("big_value",
+                     std::string(kMaxDimensionValueSize * 4, 'B'));
+
+  EXPECT_EQ(exporter.Export(MakeSumLongMetricsWithAttributes(attributes)),
+            opentelemetry::sdk::common::ExportResult::kSuccess);
+}
+
+static inline opentelemetry::sdk::metrics::ResourceMetrics
+MakeHistogramLongMetrics(const std::vector<double> &boundaries,
+                         const std::vector<uint64_t> &counts) {
+  opentelemetry::sdk::metrics::HistogramPointData histogram_point_data{};
+  histogram_point_data.boundaries_ = boundaries;
+  histogram_point_data.counts_ = counts;
+  histogram_point_data.count_ = counts.size();
+  histogram_point_data.sum_ = static_cast<int64_t>(0);
+  histogram_point_data.min_ = static_cast<int64_t>(0);
+  histogram_point_data.max_ = static_cast<int64_t>(boundaries.size());
+
+  static opentelemetry::sdk::resource::Resource resource =
+      opentelemetry::sdk::resource::Resource::Create(
+          opentelemetry::sdk::resource::ResourceAttributes{});
+  static auto scope =
+      opentelemetry::sdk::instrumentationscope::InstrumentationScope::Create(
+          "overflow_test_lib", "1.0.0");
+
+  opentelemetry::sdk::metrics::MetricData metric_data{
+      opentelemetry::sdk::metrics::InstrumentDescriptor{
+          "overflow_histogram", "desc", "unit",
+          opentelemetry::sdk::metrics::InstrumentType::kHistogram,
+          opentelemetry::sdk::metrics::InstrumentValueType::kLong},
+      opentelemetry::sdk::metrics::AggregationTemporality::kDelta,
+      opentelemetry::common::SystemTimestamp{std::chrono::system_clock::now()},
+      opentelemetry::common::SystemTimestamp{std::chrono::system_clock::now()},
+      std::vector<opentelemetry::sdk::metrics::PointDataAttributes>{
+          {opentelemetry::sdk::metrics::PointAttributes{}, histogram_point_data}}};
+
+  opentelemetry::sdk::metrics::ResourceMetrics data;
+  data.resource_ = &resource;
+  data.scope_metric_data_ =
+      std::vector<opentelemetry::sdk::metrics::ScopeMetrics>{
+          {scope.get(),
+           std::vector<opentelemetry::sdk::metrics::MetricData>{metric_data}}};
+  return data;
+}
+
+TEST(GenevaExporterTest, HistogramManyBucketsDoNotOverflowBuffer) {
+  ExporterOptions options{
+      "Endpoint=unix:///tmp/geneva_hist_test;Account=test;Namespace=test"};
+  Exporter exporter(options);
+
+  const size_t kNumBuckets = 6000;
+  std::vector<double> boundaries(kNumBuckets);
+  for (size_t i = 0; i < kNumBuckets; i++) {
+    boundaries[i] = static_cast<double>(i);
+  }
+  // All buckets non-empty so every one is serialized.
+  std::vector<uint64_t> counts(kNumBuckets + 1, 1);
+
+  EXPECT_EQ(exporter.Export(MakeHistogramLongMetrics(boundaries, counts)),
+            opentelemetry::sdk::common::ExportResult::kSuccess);
+}
+
+TEST(GenevaExporterTest, HistogramMismatchedCountsDoesNotReadOutOfBounds) {
+  ExporterOptions options{
+      "Endpoint=unix:///tmp/geneva_hist_mismatch_test;Account=test;Namespace=test"};
+  Exporter exporter(options);
+
+  std::vector<double> boundaries(8);
+  for (size_t i = 0; i < boundaries.size(); i++) {
+    boundaries[i] = static_cast<double>(i);
+  }
+  // Deliberately shorter than boundaries (SDK normally guarantees size + 1).
+  std::vector<uint64_t> counts(2, 1);
+
+  EXPECT_EQ(exporter.Export(MakeHistogramLongMetrics(boundaries, counts)),
+            opentelemetry::sdk::common::ExportResult::kSuccess);
+}
 
 #endif

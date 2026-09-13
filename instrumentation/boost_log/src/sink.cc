@@ -26,7 +26,7 @@ static bool ToTimestampDefault(const boost::log::record_view &record,
   static constexpr boost::posix_time::ptime kEpochTime(boost::gregorian::date(1970, 1, 1));
   static constexpr boost::posix_time::ptime kInvalid{};
 
-  const auto &timestamp =
+  auto timestamp =
       boost::log::extract_or_default<boost::posix_time::ptime>(record["TimeStamp"], kInvalid);
   value = system_clock::time_point(nanoseconds((timestamp - kEpochTime).total_nanoseconds()));
   return timestamp != kInvalid;
@@ -36,7 +36,7 @@ static bool ToThreadIdDefault(const boost::log::record_view &record, std::string
 {
   static constexpr boost::log::aux::thread::id kInvalid{};
 
-  const auto &thread_id =
+  auto thread_id =
       boost::log::extract_or_default<boost::log::aux::thread::id>(record["ThreadID"], kInvalid);
 
   std::stringstream ss;
@@ -68,7 +68,9 @@ OpenTelemetrySinkBackend::OpenTelemetrySinkBackend(const ValueMappers &mappers) 
 {
   mappers_.ToSeverity =
       mappers.ToSeverity ? mappers.ToSeverity : [](const boost::log::record_view &record) {
-        return levelToSeverity(boost::log::extract_or_default<int>(record["Severity"], -1));
+        using boost::log::trivial::severity_level;
+        return levelToSeverity(boost::log::extract_or_default<severity_level>(
+            record["Severity"], static_cast<severity_level>(-1)));
       };
   mappers_.ToTimeStamp = mappers.ToTimeStamp ? mappers.ToTimeStamp : ToTimestampDefault;
   mappers_.ToThreadId  = mappers.ToThreadId ? mappers.ToThreadId : ToThreadIdDefault;

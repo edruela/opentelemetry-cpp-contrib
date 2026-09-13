@@ -1,4 +1,7 @@
-# OpenTelemetry C++ Contrib 
+# OpenTelemetry C++ Contrib
+
+[![FOSSA License Status](https://app.fossa.com/api/projects/custom%2B162%2Fgithub.com%2Fopen-telemetry%2Fopentelemetry-cpp-contrib.svg?type=shield&issueType=license)](https://app.fossa.com/projects/custom%2B162%2Fgithub.com%2Fopen-telemetry%2Fopentelemetry-cpp-contrib?ref=badge_shield&issueType=license)
+[![FOSSA Security Status](https://app.fossa.com/api/projects/custom%2B162%2Fgithub.com%2Fopen-telemetry%2Fopentelemetry-cpp-contrib.svg?type=shield&issueType=security)](https://app.fossa.com/projects/custom%2B162%2Fgithub.com%2Fopen-telemetry%2Fopentelemetry-cpp-contrib?ref=badge_shield&issueType=security)
 
 This repository contains set of components extending functionality of the
 OpenTelemetry SDK. Instrumentation libraries, exporters, and other components
@@ -19,30 +22,40 @@ doc](https://docs.google.com/document/d/1i1E4-_y4uJ083lCutKGDhkpi3n4_e774SBLi9hP
 For edit access, get in touch on
 [Slack](https://cloud-native.slack.com/archives/C01N3AT62SJ).
 
-[Maintainers](https://github.com/open-telemetry/community/blob/main/community-membership.md#maintainer)
-([@open-telemetry/cpp-contrib-maintainers](https://github.com/orgs/open-telemetry/teams/cpp-contrib-maintainers)):
+The meeting is open for all to join. We invite everyone to join our meeting,
+regardless of your experience level. Whether you're a seasoned OpenTelemetry
+developer, just starting your journey, or simply curious about the work we do,
+you're more than welcome to participate!
 
+### Maintainers
+
+* [Doug Barker](https://github.com/dbarker)
 * [Lalit Kumar Bhasin](https://github.com/lalitb), Microsoft
 * [Marc Alff](https://github.com/marcalff), Oracle
 * [Tom Tan](https://github.com/ThomsonTan), Microsoft
 
-[Approvers](https://github.com/open-telemetry/community/blob/main/community-membership.md#approver)
-([@open-telemetry/cpp-contrib-approvers](https://github.com/orgs/open-telemetry/teams/cpp-contrib-approvers)):
+For more information about the maintainer role, see the [community repository](https://github.com/open-telemetry/community/blob/main/guides/contributor/membership.md#maintainer).
 
-* [DEBAJIT DAS](https://github.com/DebajitDas), Cisco
-* [Ehsan Saei](https://github.com/esigo)
-* [Johannes Tax](https://github.com/pyohannes), Grafana Labs
-* [Josh Suereth](https://github.com/jsuereth), Google
-* [Kumar Pratyush](https://github.com/kpratyus), Cisco
-* [Max Golovanov](https://github.com/maxgolov), Microsoft
-* [Siim Kallas](https://github.com/seemk), Splunk
-* [Tobias Stadler](https://github.com/tobiasstadler)
-* [Tomasz Rojek](https://github.com/TomRoSystems)
+### Approvers
 
-[Emeritus
-Maintainer/Approver/Triager](https://github.com/open-telemetry/community/blob/main/community-membership.md#emeritus-maintainerapprovertriager):
 
-* None
+For more information about the approver role, see the [community repository](https://github.com/open-telemetry/community/blob/main/guides/contributor/membership.md#approver).
+
+### Emeritus
+
+* [Aryan Ishan](https://github.com/aryanishan1001), Approver
+* [DEBAJIT DAS](https://github.com/DebajitDas), Approver
+* [Ehsan Saei](https://github.com/esigo), Maintainer
+* [Johannes Tax](https://github.com/pyohannes), Approver
+* [Josh Suereth](https://github.com/jsuereth), Approver
+* [Kumar Pratyush](https://github.com/kpratyus), Approver
+* [Max Golovanov](https://github.com/maxgolov), Approver
+* [Siim Kallas](https://github.com/seemk), Approver
+* [Tobias Stadler](https://github.com/tobiasstadler), Approver
+* [Tomasz Rojek](https://github.com/TomRoSystems), Approver
+
+For more information about the emeritus role, see the
+[community repository](https://github.com/open-telemetry/community/blob/main/guides/contributor/membership.md#emeritus-maintainerapprovertriager).
 
 ### Thanks to all the people who have contributed
 

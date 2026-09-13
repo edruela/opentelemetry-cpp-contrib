@@ -7,8 +7,9 @@
 #include "geneva_exporter_options.h"
 #include <opentelemetry/exporters/fluentd/common/socket_tools.h>
 #include <opentelemetry/exporters/fluentd/trace/fluentd_exporter.h>
-#include <opentelemetry/sdk/trace/tracer_provider.h>
 #include <opentelemetry/sdk/trace/batch_span_processor.h>
+#include <opentelemetry/sdk/trace/batch_span_processor_options.h>
+#include <opentelemetry/sdk/trace/tracer_provider.h>
 #include <opentelemetry/trace/provider.h>
 
 OPENTELEMETRY_BEGIN_NAMESPACE
@@ -27,6 +28,7 @@ static inline bool InitializeGenevaExporter( const GenevaExporterOptions options
         opentelemetry::sdk::trace::BatchSpanProcessorOptions batch_processor_options;
         fluentd_options.retry_count = options.retry_count;
         fluentd_options.endpoint = options.socket_endpoint;
+        fluentd_options.include_trace_state_for_span = options.include_trace_state_for_span;
         batch_processor_options.max_queue_size = options.max_queue_size;
         batch_processor_options.schedule_delay_millis = options.schedule_delay_millis;
         batch_processor_options.max_export_batch_size = options.max_export_batch_size;
@@ -40,7 +42,7 @@ static inline bool InitializeGenevaExporter( const GenevaExporterOptions options
         return true;
     } else {
 #if defined(__EXCEPTIONS)
-        throw new std::runtime_error("Invalid endpoint! Unix domain socket should have unix:// as url-scheme");
+        throw std::runtime_error("Invalid endpoint! Unix domain socket should have unix:// as url-scheme");
 #endif
         return false;
     }

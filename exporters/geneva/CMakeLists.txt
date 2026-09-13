@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.12)
+cmake_minimum_required(VERSION 3.16)
 
 # MAIN_PROJECT CHECK determine if fluentd exporter is built as a subproject
 # (using add_subdirectory) or if it is the main project
@@ -43,6 +43,10 @@ else()
   add_library(opentelemetry_exporter_geneva_metrics
               src/exporter.cc src/unix_domain_socket_data_transport.cc)
 endif()
+
+set_target_properties(
+  opentelemetry_exporter_geneva_metrics
+  PROPERTIES EXPORT_NAME opentelemetry_exporter_geneva_metrics)
 
 if(MAIN_PROJECT)
    target_include_directories(opentelemetry_exporter_geneva_metrics
@@ -91,32 +95,49 @@ if(BUILD_TESTING)
 endif()
 
 if(OPENTELEMETRY_INSTALL)
-  install(
-    TARGETS opentelemetry_exporter_geneva_metrics
-    EXPORT "${PROJECT_NAME}-target"
-    RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
-    LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
-    ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR})
+  if(MAIN_PROJECT)
+    install(
+      TARGETS opentelemetry_exporter_geneva_metrics
+      EXPORT "${PROJECT_NAME}-target"
+      RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+      LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+      ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR})
 
-  install(
-    DIRECTORY include/opentelemetry/exporters/geneva
-    DESTINATION include/opentelemetry/exporters
-    FILES_MATCHING
-    PATTERN "*.h")
+    install(
+      DIRECTORY include/opentelemetry/exporters/geneva
+      DESTINATION include/opentelemetry/exporters
+      FILES_MATCHING
+      PATTERN "*.h")
+  else()
+    otel_add_component(
+      COMPONENT
+      exporters_geneva_metrics
+      TARGETS
+      opentelemetry_exporter_geneva_metrics
+      FILES_DIRECTORY
+      "include/opentelemetry/exporters/geneva"
+      FILES_DESTINATION
+      "include/opentelemetry/exporters"
+      FILES_MATCHING
+      PATTERN
+      "*.h")
+  endif()
 endif()
 
-if(BUILD_EXAMPLE)
+if(WITH_EXAMPLES)
   add_executable(example_metrics example/example_metrics.cc
                                  example/foo_library.cc)
   target_link_libraries(example_metrics opentelemetry_exporter_geneva_metrics)
 
-  add_executable(stress_test_linux example/stress_test_linux.cc)
-  find_package(Boost QUIET)
-  if(Boost_FOUND)
-    include_directories(${Boost_INCLUDE_DIRS})
-    target_compile_definitions(stress_test_linux PRIVATE HAVE_BOOST)
+  if(NOT WIN32)
+    add_executable(stress_test_linux example/stress_test_linux.cc)
+    find_package(Boost QUIET)
+    if(Boost_FOUND)
+      include_directories(${Boost_INCLUDE_DIRS})
+      target_compile_definitions(stress_test_linux PRIVATE HAVE_BOOST)
+    endif()
+    target_link_libraries(stress_test_linux opentelemetry_exporter_geneva_metrics)
   endif()
-  target_link_libraries(stress_test_linux opentelemetry_exporter_geneva_metrics)
 endif()
 if(MAIN_PROJECT AND BUILD_PACKAGE)
   include(cmake/package.cmake)
